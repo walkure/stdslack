@@ -1,7 +1,6 @@
 package util
 
 import (
-	"bytes"
 	"io"
 	"testing"
 )
@@ -34,7 +33,7 @@ func TestToUTF8(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			got, err := ToUTF8(bytes.NewReader(tt.input))
+			got, err := ToUTF8(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ToUTF8() error = %v, wantErr %v", err, tt.wantErr)
 				return

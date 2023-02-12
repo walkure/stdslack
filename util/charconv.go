@@ -10,12 +10,7 @@ import (
 )
 
 // ToUTF8 converts to utf-8 charset
-func ToUTF8(input io.Reader) (io.Reader, error) {
-
-	bytesInput, err := io.ReadAll(input)
-	if err != nil {
-		return nil, fmt.Errorf("failure to read input: %w", err)
-	}
+func ToUTF8(bytesInput []byte) (io.Reader, error) {
 
 	detector := chardet.NewTextDetector()
 	deetctResult, err := detector.DetectBest(bytesInput)

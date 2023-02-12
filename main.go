@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -20,34 +21,46 @@ var filename = flag.String("filename", "stdin.txt", "filename recognized by slac
 func main() {
 	flag.Parse()
 
+	bytesInput, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		fmt.Printf("cannot read stdin: %w\n", err)
+		return
+	}
+
 	token := os.Getenv("SLACK_TOKEN")
 
 	if token == "" {
-		fmt.Printf("env:SLACK_TOKEN required.")
+		fmt.Fprintf(os.Stderr, "env:SLACK_TOKEN required.\n")
+		os.Stdout.Write(bytesInput)
 		return
 	}
 
 	client := slack.New(token)
 
 	if *channels == "" {
-		fmt.Printf("channels argument is mandatory")
+		fmt.Fprintf(os.Stderr, "channels argument is mandatory\n")
+		os.Stdout.Write(bytesInput)
 		return
 	}
 
-	input := io.Reader(os.Stdin)
-	var err error
+	var input io.Reader
 
-	if !*raw {
-		input, err = util.ToUTF8(os.Stdin)
+	if *raw {
+		input = bytes.NewReader(bytesInput)
+	} else {
+		input, err = util.ToUTF8(bytesInput)
 		if err != nil {
-			fmt.Printf("failure to convert input: %v", err)
+			fmt.Fprintf(os.Stderr, "failure to convert input: %v\n", err)
+			os.Stdout.Write(bytesInput)
 			return
 		}
 	}
 
 	err = uploadContent(context.Background(), client, input, strings.Split(*channels, ","), *comment, *filename)
 	if err != nil {
-		fmt.Printf("failure to send slack: %v", err)
+		fmt.Fprintf(os.Stderr, "failure to send slack: %v\n", err)
+		os.Stdout.Write(bytesInput)
+		return
 	}
 
 }
