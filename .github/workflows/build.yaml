@@ -1,0 +1,47 @@
+name: release
+on:
+  push:
+    tags:
+    - "v*"
+
+env:
+  package_name: stdslack
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: ['linux','windows']
+        arch: ['amd64','arm']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: ./go.mod
+          cache: true
+      - run: go mod download
+      - name: Set Output filenames
+        id: binnames
+        run: |
+          echo filename=stdslack$([ "${{ matrix.os }}" = "windows" ] && echo ".exe") >> $GITHUB_OUTPUT
+      - name: Build Client
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run : 
+          go build -o ${{ steps.binnames.outputs.filename }}
+           -ldflags "-X main.version=$(git describe --tags --abbrev=0) -X main.commit=$(git rev-parse --short HEAD)"
+           ./main.go
+      - name: Create Package
+        run: 
+          tar czvf ${{ env.package_name }}-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
+          ${{ steps.binnames.outputs.filename }}
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ env.package_name }}-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
